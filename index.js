@@ -36,6 +36,7 @@ io.on("connection", (socket) => {
 
 app.use("/user", authRoutes);
 
+
 // API Route for sending messages
 app.post("/api/messages/send", (req, res) => {
   const { message, sender } = req.body;

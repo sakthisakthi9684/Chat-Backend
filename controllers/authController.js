@@ -1,6 +1,8 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../model/userModel");
+const OTP = require("../model/otpModel"); // OTP Model
+const nodemailer = require("nodemailer");
 
 // 🔹 Generate User ID Function
 const generateUserID = async () => {
@@ -75,6 +77,62 @@ exports.loginUser = async (req, res) => {
       expiresIn: "1h",
     });
     res.json({ token, userId: user._id });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
+const generateOTP = () => Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: "sivasakthi26082000@gmail.com",
+    pass: "htrhxzlmjqsyyfty",
+  },
+});
+
+// 🔹 Send OTP API
+exports.sendOtp = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const otpCode = generateOTP();
+
+    console.log("🔹 sendOtp function called");
+    console.log("📩 Received OTP request:", { email });
+
+    await OTP.findOneAndUpdate(
+      { email },
+      { otp: otpCode, createdAt: Date.now() },
+      { upsert: true }
+    );
+
+    // Send OTP via email
+    await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Your OTP Code",
+      text: `Your OTP code is ${otpCode}`,
+    });
+
+    res.json({ message: "OTP sent successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error });
+    console.log("❌ Server error:", error);
+  }
+};
+
+// 🔹 Verify OTP API
+exports.verifyOtp = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+    const otpRecord = await OTP.findOne({ email });
+
+    if (!otpRecord || otpRecord.otp !== otp) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    res.json({ message: "OTP verified successfully" });
   } catch (error) {
     res.status(500).json({ message: "Server error", error });
   }
