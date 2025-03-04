@@ -122,18 +122,38 @@ exports.sendOtp = async (req, res) => {
   }
 };
 
-// 🔹 Verify OTP API
 exports.verifyOtp = async (req, res) => {
   try {
     const { email, otp } = req.body;
-    const otpRecord = await OTP.findOne({ email });
 
-    if (!otpRecord || otpRecord.otp !== otp) {
-      return res.status(400).json({ message: "Invalid OTP" });
+    console.log("Email:", email);
+    console.log("OTP:", otp);
+
+    // Ensure email is always stored and queried in lowercase
+    const lowerCaseEmail = email.toLowerCase();
+
+    const otpRecord = await OTP.findOne({ email: lowerCaseEmail });
+
+    console.log("OTP Record Found:", otpRecord);
+
+    if (!otpRecord) {
+      console.log("No OTP record found for this email.");
+      return res.status(400).json({ message: "OTP Invalid" });
     }
 
-    res.json({ message: "OTP verified successfully" });
+    if (`${otpRecord.otp}` !== `${otp}`) {
+      console.log("Entered OTP does not match.");
+      return res.status(400).json({ message: "OTP Invalid" });
+    }
+
+    if (otpRecord.expiry && otpRecord.expiry < Date.now()) {
+      console.log("OTP Expired.");
+      return res.status(400).json({ message: "OTP Expired" });
+    }
+
+    return res.json({ message: "OTP verified successfully" });
   } catch (error) {
-    res.status(500).json({ message: "Server error", error });
+    console.error("Server Error:", error);
+    return res.status(500).json({ message: "Server error", error });
   }
 };
