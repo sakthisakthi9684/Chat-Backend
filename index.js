@@ -36,6 +36,9 @@ io.on("connection", (socket) => {
 
 app.use("/user", authRoutes);
 
+app.get("/api", (req, res) => {
+  res.status(200).json({ message: "Backend running successfully!" });
+});
 
 // API Route for sending messages
 app.post("/api/messages/send", (req, res) => {
