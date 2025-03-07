@@ -16,10 +16,11 @@ connectDB(); // Call the function to connect to MongoDB
 
 const io = new Server(server, {
   cors: {
-    origin: "https://chat-backend-yqcz.onrender.com",
+    origin: ["https://chat-backend-yqcz.onrender.com", "http://localhost:5173"], // Allow both production and development
     methods: ["GET", "POST"],
   },
 });
+
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
