@@ -12,12 +12,13 @@ app.use(express.json()); // Middleware to parse JSON
 app.use(cors());
 const connectDB = require("./DB/db");
 
-
-connectDB();  // Call the function to connect to MongoDB
-
+connectDB(); // Call the function to connect to MongoDB
 
 const io = new Server(server, {
-  cors: { origin: "http://localhost:5173", methods: ["GET", "POST"] },
+  cors: {
+    origin: "https://chat-backend-yqcz.onrender.com",
+    methods: ["GET", "POST"],
+  },
 });
 
 io.on("connection", (socket) => {
@@ -33,12 +34,14 @@ io.on("connection", (socket) => {
   });
 });
 
+app.get("/api", (req, res) => {
+  res.json({ message: "backend running successfully!" });
+});
 
 app.use("/user", authRoutes);
 
-
 // API Route for sending messages
-app.post("/api/messages/send", (req, res) => {
+app.post("/messages/send", (req, res) => {
   const { message, sender } = req.body;
   if (!message || !sender) {
     return res.status(400).json({ error: "Message and sender required!" });
