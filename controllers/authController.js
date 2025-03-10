@@ -92,33 +92,62 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// 🔹 Send OTP API
 exports.sendOtp = async (req, res) => {
   try {
     const { email } = req.body;
-    const otpCode = generateOTP();
+    const lowerCaseEmail = email.toLowerCase();
+
+    if (!lowerCaseEmail) {
+      return res.status(400).json({ message: "Invalid email" });
+    }
 
     console.log("🔹 sendOtp function called");
-    console.log("📩 Received OTP request:", { email });
+    console.log("📩 Received OTP request for:", lowerCaseEmail);
 
+    // 🔹 **Check if the email is already registered**
+    const existingUser = await User.findOne({ email: lowerCaseEmail });
+    if (existingUser) {
+      console.log("⚠️ Email already exists:", lowerCaseEmail);
+      return res.status(400).json({ message: "Email already registered" });
+    }
+
+    // 🔹 **Check if an OTP already exists for this email**
+    const existingOtp = await OTP.findOne({ email: lowerCaseEmail });
+
+    if (existingOtp) {
+      const otpExpiry = existingOtp.createdAt.getTime() + 5 * 60 * 1000; // 5 mins validity
+      if (Date.now() < otpExpiry) {
+        console.log("⚠️ OTP already sent recently:", existingOtp.otp);
+        return res
+          .status(400)
+          .json({ message: "OTP already sent. Try again later." });
+      }
+    }
+
+    // 🔹 **Generate new OTP**
+    const otpCode = generateOTP();
+    console.log("🔢 Generated OTP:", otpCode);
+
+    // 🔹 **Save/Update OTP**
     await OTP.findOneAndUpdate(
-      { email },
+      { email: lowerCaseEmail },
       { otp: otpCode, createdAt: Date.now() },
       { upsert: true }
     );
 
-    // Send OTP via email
+    // 🔹 **Send OTP via email**
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
-      to: email,
+      to: lowerCaseEmail,
       subject: "Your OTP Code",
-      text: `Your OTP code is ${otpCode}`,
+      text: `Your OTP code is ${otpCode}. This code is valid for 5 minutes.`,
     });
 
+    console.log("✅ OTP sent successfully to:", lowerCaseEmail);
     res.json({ message: "OTP sent successfully" });
   } catch (error) {
+    console.error("❌ Server error:", error);
     res.status(500).json({ message: "Server error", error });
-    console.log("❌ Server error:", error);
   }
 };
 
