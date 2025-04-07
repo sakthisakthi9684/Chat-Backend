@@ -1,6 +1,6 @@
 const express = require("express");
 const http = require("http");
-const { Server } = require("socket.io");
+const WebSocket = require("ws");
 const cors = require("cors");
 // Import Routes
 const authRoutes = require("./routes/authRoutes");
@@ -20,5 +20,19 @@ app.get("/", (req, res) => {
 
 app.use("/user", authRoutes);
 app.use("/msg", messageRoute);
+
+
+// Set up WebSocket server
+const wss = new WebSocket.Server({ server });
+
+
+wss.on("connection", (ws) => {
+  logger.info("New client connected");
+
+  ws.on("close", () => {
+    logger.info("Client disconnected");
+  });
+});
+
 
 server.listen(5000, () => console.log("Server running on port 5000"));
